@@ -50,3 +50,12 @@ route-list:
 
 artisan:
 	$(SUDO) docker compose exec petapp_app php artisan $(filter-out $@,$(MAKECMDGOALS))
+
+composer-dump-autoload:
+	$(SUDO) docker compose exec petapp_app composer dump-autoload
+
+composer-install:
+	$(SUDO) docker compose exec petapp_app composer install
+
+composer-update:
+	$(SUDO) docker compose exec petapp_app composer update
