@@ -1,5 +1,6 @@
-FROM php:8.3-fpm
+FROM php:8.4-fpm
 LABEL authors="PetApp"
+ARG DOCKER_ENV
 
 COPY /composer.lock /composer.json /var/www/
 
