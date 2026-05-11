@@ -18,10 +18,10 @@ interface PetServiceInterface
     public function getPets(string $status, int $perPage = 15): LengthAwarePaginator;
 
     /**
-     * @param int $pet
+     * @param string $pet
      * @return PetDto
      */
-    public function getPet(int $pet): PetDto;
+    public function getPet(string $pet): PetDto;
 
     /**
      * @param array $data
@@ -30,17 +30,17 @@ interface PetServiceInterface
     public function createPet(array $data): PetDto;
 
     /**
-     * @param int $pet
+     * @param string $pet
      * @param array $data
      * @return void
      */
-    public function updatePet(int $pet, array $data): void;
+    public function updatePet(string $pet, array $data): void;
 
     /**
-     * @param int $pet
+     * @param string $pet
      * @return void
      */
-    public function deletePet(int $pet): void;
+    public function deletePet(string $pet): void;
 
 
 }

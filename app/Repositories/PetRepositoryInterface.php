@@ -10,10 +10,10 @@ use App\DTOs\PetDTO;
 interface PetRepositoryInterface
 {
     /**
-     * @param int $id
+     * @param string $id
      * @return PetDTO
      */
-    public function findById(int $id): PetDTO;
+    public function findById(string $id): PetDTO;
 
     /**
      * @param string $status
@@ -29,13 +29,13 @@ interface PetRepositoryInterface
 
     /**
      * @param PetDTO $petDTO
-     * @return PetDTO
+     * @return void
      */
-    public function update(PetDTO $petDTO): PetDTO;
+    public function update(PetDTO $petDTO): void;
 
     /**
-     * @param int $id
-     * @return bool
+     * @param string $id
+     * @return void
      */
-    public function delete(int $id): bool;
+    public function delete(string $id): void;
 }

@@ -43,10 +43,10 @@ readonly class PetService implements PetServiceInterface
     }
 
     /**
-     * @param int $pet
+     * @param string $pet
      * @return PetDTO
      */
-    public function getPet(int $pet): PetDTO
+    public function getPet(string $pet): PetDTO
     {
         return $this->petRepository->findById($pet);
     }
@@ -57,29 +57,41 @@ readonly class PetService implements PetServiceInterface
      */
     public function createPet(array $data): PetDTO
     {
-        $petDTO = new PetDTO(
-            id:        null,
-            name:      $data['name'],
-            status:    $data['status'],
-            photoUrls: $data['photoUrls'] ?? [],
-            category:  isset($data['category']) ? [
-                'id'   => $data['category']['id'] ?? 0,
-                'name' => $data['category']['name'] ?? '',
-            ] : null,
+        return $this->petRepository->create(
+            $this->mapDataToDTO($data)
         );
-
-        return $this->petRepository->create($petDTO);
     }
 
     /**
-     * @param int $pet
+     * @param string $pet
      * @param array $data
      * @return void
      */
-    public function updatePet(int $pet, array $data): void
+    public function updatePet(string $pet, array $data): void
     {
-        $petDTO = new PetDTO(
-            id:        $pet,
+        $this->petRepository->update(
+            $this->mapDataToDTO($data, $pet)
+        );
+    }
+
+    /**
+     * @param string $pet
+     * @return void
+     */
+    public function deletePet(string $pet): void
+    {
+        $this->petRepository->delete($pet);
+    }
+
+    /**
+     * @param array $data
+     * @param string|null $id
+     * @return PetDTO
+     */
+    private function mapDataToDTO(array $data, ?string $id = null): PetDTO
+    {
+        return new PetDTO(
+            id:        $id ? (int) $id : null,
             name:      $data['name'],
             status:    $data['status'],
             photoUrls: $data['photoUrls'] ?? [],
@@ -88,16 +100,5 @@ readonly class PetService implements PetServiceInterface
                 'name' => $data['category']['name'] ?? '',
             ] : null,
         );
-
-        $this->petRepository->update($petDTO);
-    }
-
-    /**
-     * @param int $pet
-     * @return void
-     */
-    public function deletePet(int $pet): void
-    {
-        $this->petRepository->delete($pet);
     }
 }

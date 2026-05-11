@@ -4,147 +4,81 @@ namespace App\Repositories;
 
 use App\DTOs\PetDTO;
 use App\Exceptions\PetApiException;
+use App\Services\HttpService;
 use Illuminate\Http\Client\ConnectionException;
-use Illuminate\Http\Client\Response;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Summary of PetRepository
  */
-class PetRepository implements PetRepositoryInterface
+readonly class PetRepository implements PetRepositoryInterface
 {
     /**
-     * @param string $baseUrl
+     * @param HttpService $httpService
      */
     public function __construct(
-        private readonly string $baseUrl,
+        private HttpService $httpService,
     ) {}
 
     /**
-     * @param int $id
+     * @param string $id
      * @return PetDTO
+     * @throws ConnectionException
      * @throws PetApiException
      */
-    public function findById(int $id): PetDTO
+    public function findById(string $id): PetDTO
     {
-        try {
-            $response = Http::timeout(10)->get("{$this->baseUrl}/pet/{$id}");
+        $response = $this->httpService->request('GET', "/pet/{$id}");
 
-            $this->handleErrorResponse($response);
-
-            return PetDTO::fromArray($response->json());
-        } catch (ConnectionException $e) {
-            throw new PetApiException('Nie można połączyć się z API. Spróbuj ponownie później.');
-        }
+        return PetDTO::fromArray($response->json());
     }
 
     /**
      * @param string $status
-     * @return PetDTO[]
+     * @return array|PetDTO[]
+     * @throws ConnectionException
      * @throws PetApiException
      */
     public function findByStatus(string $status): array
     {
-        try {
-            $response = Http::timeout(10)->get("{$this->baseUrl}/pet/findByStatus", [
-                'status' => $status,
-            ]);
+        $response = $this->httpService->request('GET', '/pet/findByStatus', ['status' => $status]);
 
-            $this->handleErrorResponse($response);
-
-            return collect($response->json())
-                ->map(fn(array $pet) => PetDTO::fromArray($pet))
-                ->toArray();
-        } catch (ConnectionException $e) {
-            throw new PetApiException('Nie można połączyć się z API. Spróbuj ponownie później.');
-        }
+        return collect($response->json())
+            ->map(fn(array $pet) => PetDTO::fromArray($pet))
+            ->toArray();
     }
 
     /**
      * @param PetDTO $petDTO
      * @return PetDTO
+     * @throws ConnectionException
      * @throws PetApiException
      */
     public function create(PetDTO $petDTO): PetDTO
     {
-        try {
-            $response = Http::timeout(10)->asJson()->post("{$this->baseUrl}/pet", $petDTO->toArray());
+        $response = $this->httpService->request('POST', '/pet', $petDTO->toArray());
 
-            $this->handleErrorResponse($response);
-
-            return PetDTO::fromArray($response->json());
-        } catch (ConnectionException $e) {
-            throw new PetApiException('Nie można połączyć się z API. Spróbuj ponownie później.');
-        }
+        return PetDTO::fromArray($response->json());
     }
 
     /**
      * @param PetDTO $petDTO
-     * @return PetDTO
-     * @throws PetApiException
-     */
-    public function update(PetDTO $petDTO): PetDTO
-    {
-        try {
-            $response = Http::timeout(10)->asJson()->put("{$this->baseUrl}/pet", $petDTO->toArray());
-
-            $this->handleErrorResponse($response);
-
-            return PetDTO::fromArray($response->json());
-        } catch (ConnectionException $e) {
-            Log::error('PetStore API unreachable on update', ['id' => $petDTO->id, 'error' => $e->getMessage()]);
-            throw new PetApiException('Nie można połączyć się z API. Spróbuj ponownie później.');
-        }
-    }
-
-    /**
-     * @param int $id
-     * @return bool
-     * @throws PetApiException
-     */
-    public function delete(int $id): bool
-    {
-        try {
-            $response = Http::timeout(10)->delete("{$this->baseUrl}/pet/{$id}");
-
-            if ($response->status() === 404) {
-                return true;
-            }
-
-            $this->handleErrorResponse($response);
-
-            return $response->successful();
-        } catch (ConnectionException $e) {
-            Log::error('PetStore API unreachable on delete', ['id' => $id, 'error' => $e->getMessage()]);
-            throw new PetApiException('Nie można połączyć się z API. Spróbuj ponownie później.');
-        }
-    }
-
-    /**
-     * @param Response $response
      * @return void
+     * @throws ConnectionException
      * @throws PetApiException
      */
-    private function handleErrorResponse(Response $response): void
+    public function update(PetDTO $petDTO): void
     {
-        if ($response->successful()) {
-            return;
-        }
+        $this->httpService->request('PUT', '/pet', $petDTO->toArray());
+    }
 
-        $statusCode = $response->status();
-
-        Log::warning('PetStore API error', ['status' => $statusCode, 'body' => $response->body()]);
-
-        $message = match ($statusCode) {
-            400     => 'Niepoprawne dane żądania.',
-            404     => 'Nie znaleziono zwierzęcia o podanym ID.',
-            405     => 'Metoda HTTP niedozwolona.',
-            500,
-            503     => 'Wewnętrzny błąd serwera API.',
-            default => "Nieoczekiwany błąd API (HTTP {$statusCode}).",
-        };
-
-        throw new PetApiException($message, $statusCode, $response->body());
+    /**
+     * @param string $id
+     * @return void
+     * @throws ConnectionException
+     * @throws PetApiException
+     */
+    public function delete(string $id): void
+    {
+        $this->httpService->request('DELETE', "/pet/{$id}");
     }
 }

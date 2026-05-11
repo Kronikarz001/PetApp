@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Dtos;
+namespace App\DTOs;
 
 /**
- * Summary of PetDto
+ * Summary of PetDTO
  */
-readonly class PetDto
+readonly class PetDTO
 {
     /**
      * @param int|null $id
@@ -16,11 +16,11 @@ readonly class PetDto
      * @param array|null $category
      */
     public function __construct(
-        public ?int $id,
+        public ?int   $id,
         public string $name,
         public string $status,
-        public array $photoUrls = [],
-        public array $tags = [],
+        public array  $photoUrls = [],
+        public array  $tags = [],
         public ?array $category = null,
     ) {}
 
@@ -31,12 +31,12 @@ readonly class PetDto
     public static function fromArray(array $data): self
     {
         return new self(
-            id: $data['id'] ?? null,
-            name: $data['name'],
-            status: $data['status'],
+            id:        $data['id'] ?? null,
+            name:      $data['name'] ?? '',
+            status:    $data['status'] ?? 'available',
             photoUrls: $data['photoUrls'] ?? [],
-            tags: $data['tags'] ?? [],
-            category: $data['category'] ?? null,
+            tags:      $data['tags'] ?? [],
+            category:  $data['category'] ?? null,
         );
     }
 
@@ -45,13 +45,13 @@ readonly class PetDto
      */
     public function toArray(): array
     {
-        return [
-            'id' => $this->id,
-            'name' => $this->name,
-            'status' => $this->status,
+        return array_filter([
+            'id'        => $this->id,
+            'name'      => $this->name,
+            'status'    => $this->status,
             'photoUrls' => $this->photoUrls,
-            'tags' => $this->tags,
-            'category' => $this->category,
-        ];
+            'tags'      => $this->tags,
+            'category'  => $this->category,
+        ], fn($value) => $value !== null && $value !== []);
     }
 }

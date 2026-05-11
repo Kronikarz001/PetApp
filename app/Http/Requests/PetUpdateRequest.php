@@ -35,12 +35,4 @@ class PetUpdateRequest extends Request
             'photoUrls.*.url' => 'Każde zdjęcie musi być poprawnym adresem URL.',
         ];
     }
-
-    /**
-     * @return bool
-     */
-    public function authorize(): bool
-    {
-        return true;
-    }
 }

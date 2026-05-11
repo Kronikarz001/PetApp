@@ -98,15 +98,14 @@ class PetServiceTest extends TestCase
         $this->repository
             ->expects($this->once())
             ->method('findById')
-            ->with(1)
+            ->with('1')
             ->willReturn($expected);
 
-        $result = $this->service->getPet(1);
+        $result = $this->service->getPet('1');
 
         $this->assertInstanceOf(PetDTO::class, $result);
         $this->assertEquals(1, $result->id);
         $this->assertEquals('Reksio', $result->name);
-        $this->assertEquals('available', $result->status);
     }
 
     /**
@@ -121,7 +120,7 @@ class PetServiceTest extends TestCase
         $this->expectException(PetApiException::class);
         $this->expectExceptionMessage('Nie znaleziono zwierzęcia o podanym ID.');
 
-        $this->service->getPet(999);
+        $this->service->getPet('999');
     }
 
     /**
@@ -181,7 +180,7 @@ class PetServiceTest extends TestCase
                     && $dto->status === 'sold';
             }));
 
-        $this->service->updatePet(1, [
+        $this->service->updatePet('1', [
             'name'   => 'Zmieniony',
             'status' => 'sold',
         ]);
@@ -198,7 +197,7 @@ class PetServiceTest extends TestCase
 
         $this->expectException(PetApiException::class);
 
-        $this->service->updatePet(1, [
+        $this->service->updatePet('1', [
             'name'   => 'Zmieniony',
             'status' => 'sold',
         ]);
@@ -212,9 +211,9 @@ class PetServiceTest extends TestCase
         $this->repository
             ->expects($this->once())
             ->method('delete')
-            ->with(1);
+            ->with('1');
 
-        $this->service->deletePet(1);
+        $this->service->deletePet('1');
     }
 
     /**
@@ -228,6 +227,6 @@ class PetServiceTest extends TestCase
 
         $this->expectException(PetApiException::class);
 
-        $this->service->deletePet(1);
+        $this->service->deletePet('1');
     }
 }

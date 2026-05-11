@@ -27,6 +27,9 @@ class PetControllerTest extends TestCase
     }
 
     /**
+     * @param int $id
+     * @param string $name
+     * @param string $status
      * @return PetDTO
      */
     private function makePetDTO(int $id = 1, string $name = 'Reksio', string $status = 'available'): PetDTO
@@ -182,6 +185,7 @@ class PetControllerTest extends TestCase
 
     /**
      * @return void
+     * @throws Exception
      */
     public function testDestroyPetShouldReturnErrorWhenApiFails(): void
     {

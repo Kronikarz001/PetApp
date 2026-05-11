@@ -37,15 +37,6 @@ class PetCreateRequest extends Request
     }
 
     /**
-     * @return bool
-     */
-    public function authorize(): bool
-    {
-        return true;
-    }
-
-
-    /**
      * @return void
      */
     protected function prepareForValidation(): void

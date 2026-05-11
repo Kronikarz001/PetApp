@@ -30,15 +30,15 @@ final class PetController extends Controller
     {
         return $this->petService->getPets(
             $request->input('status', 'available'),
-            (int) $request->input('perPage', 15),
+            $request->integer('perPage', 15),
         );
     }
 
     /**
-     * @param int $pet
+     * @param string $pet
      * @return PetResource
      */
-    public function show(int $pet): PetResource
+    public function show(string $pet): PetResource
     {
         return new PetResource(
             $this->petService->getPet($pet)
@@ -51,17 +51,17 @@ final class PetController extends Controller
      */
     public function store(PetCreateRequest $request): JsonResponse
     {
-        return (new PetResource(
+        return new PetResource(
             $this->petService->createPet($request->validated())
-        ))->response()->setStatusCode(201);
+        )->response()->setStatusCode(201);
     }
 
     /**
      * @param PetUpdateRequest $request
-     * @param int $pet
+     * @param string $pet
      * @return JsonResponse
      */
-    public function update(PetUpdateRequest $request, int $pet): JsonResponse
+    public function update(PetUpdateRequest $request, string $pet): JsonResponse
     {
         $this->petService->updatePet($pet, $request->validated());
 
@@ -69,10 +69,10 @@ final class PetController extends Controller
     }
 
     /**
-     * @param int $pet
+     * @param string $pet
      * @return JsonResponse
      */
-    public function destroy(int $pet): JsonResponse
+    public function destroy(string $pet): JsonResponse
     {
         $this->petService->deletePet($pet);
 

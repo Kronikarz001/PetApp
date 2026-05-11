@@ -5,8 +5,9 @@ namespace Tests\Unit\Repositories;
 use App\DTOs\PetDTO;
 use App\Exceptions\PetApiException;
 use App\Repositories\PetRepository;
-use Illuminate\Http\Client\ConnectionException;
-use Illuminate\Support\Facades\Http;
+use App\Services\HttpService;
+use Illuminate\Http\Client\Response;
+use PHPUnit\Framework\MockObject\MockObject;
 use Tests\TestCase;
 
 /**
@@ -16,13 +17,31 @@ class PetRepositoryTest extends TestCase
 {
     private PetRepository $repository;
 
+    /** @var HttpService&MockObject */
+    private HttpService $httpService;
+
     /**
      * @return void
      */
     protected function setUp(): void
     {
         parent::setUp();
-        $this->repository = new PetRepository('https://petstore.swagger.io/v2');
+
+        $this->httpService  = $this->createMock(HttpService::class);
+        $this->repository   = new PetRepository($this->httpService);
+    }
+
+    /**
+     * @return Response&MockObject
+     */
+    private function mockResponse(array $data, int $status = 200): Response
+    {
+        $mock = $this->createMock(Response::class);
+        $mock->method('json')->willReturn($data);
+        $mock->method('status')->willReturn($status);
+        $mock->method('successful')->willReturn($status >= 200 && $status < 300);
+
+        return $mock;
     }
 
     /**
@@ -30,13 +49,15 @@ class PetRepositoryTest extends TestCase
      */
     public function testFindByIdShouldReturnPetDTO(): void
     {
-        Http::fake([
-            '*/pet/1' => Http::response([
+        $this->httpService
+            ->expects($this->once())
+            ->method('request')
+            ->with('GET', '/pet/1')
+            ->willReturn($this->mockResponse([
                 'id' => 1, 'name' => 'Reksio', 'status' => 'available', 'photoUrls' => [],
-            ], 200),
-        ]);
+            ]));
 
-        $result = $this->repository->findById(1);
+        $result = $this->repository->findById('1');
 
         $this->assertInstanceOf(PetDTO::class, $result);
         $this->assertEquals(1, $result->id);
@@ -48,14 +69,14 @@ class PetRepositoryTest extends TestCase
      */
     public function testFindByIdShouldThrowExceptionWhenNotFound(): void
     {
-        Http::fake([
-            '*/pet/999' => Http::response(['message' => 'Pet not found'], 404),
-        ]);
+        $this->httpService
+            ->method('request')
+            ->willThrowException(new PetApiException('Nie znaleziono zwierzęcia o podanym ID.', 404));
 
         $this->expectException(PetApiException::class);
         $this->expectExceptionMessage('Nie znaleziono zwierzęcia o podanym ID.');
 
-        $this->repository->findById(999);
+        $this->repository->findById('999');
     }
 
     /**
@@ -63,12 +84,14 @@ class PetRepositoryTest extends TestCase
      */
     public function testFindByIdShouldThrowExceptionOnConnectionError(): void
     {
-        Http::fake(fn() => throw new ConnectionException('Connection refused'));
+        $this->httpService
+            ->method('request')
+            ->willThrowException(new PetApiException('Nie można połączyć się z API.'));
 
         $this->expectException(PetApiException::class);
         $this->expectExceptionMessage('Nie można połączyć się z API.');
 
-        $this->repository->findById(1);
+        $this->repository->findById('1');
     }
 
     /**
@@ -76,12 +99,14 @@ class PetRepositoryTest extends TestCase
      */
     public function testFindByStatusShouldReturnArrayOfPetDTOs(): void
     {
-        Http::fake([
-            '*/pet/findByStatus*' => Http::response([
+        $this->httpService
+            ->expects($this->once())
+            ->method('request')
+            ->with('GET', '/pet/findByStatus', ['status' => 'available'])
+            ->willReturn($this->mockResponse([
                 ['id' => 1, 'name' => 'Kot',  'status' => 'available', 'photoUrls' => []],
                 ['id' => 2, 'name' => 'Pies', 'status' => 'available', 'photoUrls' => []],
-            ], 200),
-        ]);
+            ]));
 
         $result = $this->repository->findByStatus('available');
 
@@ -95,11 +120,13 @@ class PetRepositoryTest extends TestCase
      */
     public function testCreateShouldReturnCreatedPetDTO(): void
     {
-        Http::fake([
-            '*/pet' => Http::response([
+        $this->httpService
+            ->expects($this->once())
+            ->method('request')
+            ->with('POST', '/pet')
+            ->willReturn($this->mockResponse([
                 'id' => 42, 'name' => 'Burek', 'status' => 'available', 'photoUrls' => [],
-            ], 200),
-        ]);
+            ]));
 
         $result = $this->repository->create(
             new PetDTO(id: null, name: 'Burek', status: 'available'),
@@ -114,11 +141,13 @@ class PetRepositoryTest extends TestCase
      */
     public function testUpdateShouldNotThrowOnSuccess(): void
     {
-        Http::fake([
-            '*/pet' => Http::response([
+        $this->httpService
+            ->expects($this->once())
+            ->method('request')
+            ->with('PUT', '/pet')
+            ->willReturn($this->mockResponse([
                 'id' => 1, 'name' => 'Zmieniony', 'status' => 'sold', 'photoUrls' => [],
-            ], 200),
-        ]);
+            ]));
 
         $this->repository->update(
             new PetDTO(id: 1, name: 'Zmieniony', status: 'sold'),
@@ -132,9 +161,9 @@ class PetRepositoryTest extends TestCase
      */
     public function testUpdateShouldThrowExceptionOnApiError(): void
     {
-        Http::fake([
-            '*/pet' => Http::response(['message' => 'Invalid input'], 400),
-        ]);
+        $this->httpService
+            ->method('request')
+            ->willThrowException(new PetApiException('Niepoprawne dane żądania.', 400));
 
         $this->expectException(PetApiException::class);
         $this->expectExceptionMessage('Niepoprawne dane żądania.');
@@ -149,11 +178,13 @@ class PetRepositoryTest extends TestCase
      */
     public function testDeleteShouldNotThrowOnSuccess(): void
     {
-        Http::fake([
-            '*/pet/1' => Http::response([], 200),
-        ]);
+        $this->httpService
+            ->expects($this->once())
+            ->method('request')
+            ->with('DELETE', '/pet/1')
+            ->willReturn($this->mockResponse([]));
 
-        $this->repository->delete(1);
+        $this->repository->delete('1');
 
         $this->assertTrue(true);
     }
@@ -163,11 +194,13 @@ class PetRepositoryTest extends TestCase
      */
     public function testDeleteShouldNotThrowWhenPetAlreadyNotFound(): void
     {
-        Http::fake([
-            '*/pet/999' => Http::response([], 404),
-        ]);
+        $this->httpService
+            ->expects($this->once())
+            ->method('request')
+            ->with('DELETE', '/pet/999')
+            ->willReturn($this->mockResponse([]));
 
-        $this->repository->delete(999);
+        $this->repository->delete('999');
 
         $this->assertTrue(true);
     }
