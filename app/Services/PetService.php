@@ -30,6 +30,7 @@ readonly class PetService implements PetServiceInterface
         $page = Paginator::resolveCurrentPage();
 
         $items = collect($all)
+            ->sortBy('id')
             ->slice(($page - 1) * $perPage, $perPage)
             ->values();
 
