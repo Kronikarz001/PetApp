@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Exceptions\PetApiException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 
 /**
@@ -67,5 +68,33 @@ readonly class HttpService
         };
 
         throw new PetApiException($message, $statusCode, $response->body());
+    }
+
+    /**
+     * @param string $endpoint
+     * @param UploadedFile $file
+     * @param string|null $additionalMetadata
+     * @return Response
+     * @throws PetApiException
+     * @throws ConnectionException
+     */
+    public function uploadFile(string $endpoint, UploadedFile $file, ?string $additionalMetadata = null): Response
+    {
+        $http = Http::timeout(10)
+            ->attach(
+                'file',
+                file_get_contents($file->getRealPath()),
+                $file->getClientOriginalName()
+            );
+
+        if ($additionalMetadata !== null) {
+            $http = $http->attach('additionalMetadata', $additionalMetadata);
+        }
+
+        $response = $http->post("{$this->baseUrl}{$endpoint}");
+
+        $this->handleErrorResponse($response);
+
+        return $response;
     }
 }

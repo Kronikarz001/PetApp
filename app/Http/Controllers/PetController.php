@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\PetCreateRequest;
 use App\Http\Requests\PetUpdateRequest;
+use App\Http\Requests\PetUploadFileRequest;
 use App\Http\Resources\PetResource;
 use App\Services\PetServiceInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -77,5 +78,21 @@ final class PetController extends Controller
         $this->petService->deletePet($pet);
 
         return response()->json([], 204);
+    }
+
+    /**
+     * @param PetUploadFileRequest $request
+     * @param string $id
+     * @return JsonResponse
+     */
+    public function uploadFile(PetUploadFileRequest $request, string $id): JsonResponse
+    {
+        return response()->json(
+            $this->petService->uploadFile(
+                $id,
+                $request->file('file'),
+                $request->input('additionalMetadata')
+            )
+        );
     }
 }

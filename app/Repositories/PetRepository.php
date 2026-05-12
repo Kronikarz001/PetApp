@@ -6,6 +6,7 @@ use App\DTOs\PetDTO;
 use App\Exceptions\PetApiException;
 use App\Services\HttpService;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\UploadedFile;
 
 /**
  * Summary of PetRepository
@@ -80,5 +81,24 @@ readonly class PetRepository implements PetRepositoryInterface
     public function delete(string $id): void
     {
         $this->httpService->request('DELETE', "/pet/{$id}");
+    }
+
+    /**
+     * @param string $id
+     * @param UploadedFile $file
+     * @param string|null $additionalMetadata
+     * @return array
+     * @throws ConnectionException
+     * @throws PetApiException
+     */
+    public function uploadFile(string $id, UploadedFile $file, ?string $additionalMetadata = null): array
+    {
+        $response = $this->httpService->uploadFile(
+            "/pet/{$id}/uploadFile",
+            $file,
+            $additionalMetadata
+        );
+
+        return $response->json();
     }
 }

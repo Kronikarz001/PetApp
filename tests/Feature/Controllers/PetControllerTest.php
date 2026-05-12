@@ -5,6 +5,7 @@ namespace Tests\Feature\Controllers;
 use App\DTOs\PetDTO;
 use App\Exceptions\PetApiException;
 use App\Services\PetServiceInterface;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
 use PHPUnit\Framework\MockObject\Exception;
 use Tests\TestCase;
@@ -196,5 +197,83 @@ class PetControllerTest extends TestCase
         $this->deleteJson(route('pets.destroy', ['pet' => 1]))
             ->assertStatus(500)
             ->assertJson(['message' => 'Błąd przy usuwaniu.']);
+    }
+    /**
+     * @return void
+     */
+    public function testUploadFileShouldReturnSuccessResponse(): void
+    {
+        $mock = $this->mockPetService();
+        $mock->method('uploadFile')
+            ->willReturn(['code' => 200, 'message' => 'burek.jpg']);
+
+        $this->postJson(route('pets.upload', ['pet' => 1]), [
+            'file' => UploadedFile::fake()->image('burek.jpg'),
+        ])->assertOk()
+            ->assertJsonFragment(['message' => 'burek.jpg']);
+    }
+
+    /**
+     * @return void
+     */
+    public function testUploadFileShouldPassAdditionalMetadataToService(): void
+    {
+        $mock = $this->mockPetService();
+        $mock->expects($this->once())
+            ->method('uploadFile')
+            ->with('1', $this->anything(), 'jakies dane')
+            ->willReturn(['code' => 200, 'message' => 'burek.jpg']);
+
+        $this->postJson(route('pets.upload', ['pet' => 1]), [
+            'file'               => UploadedFile::fake()->image('burek.jpg'),
+            'additionalMetadata' => 'jakies dane',
+        ])->assertOk();
+    }
+
+    /**
+     * @return void
+     */
+    public function testUploadFileShouldReturnNotFoundWhenPetDoesNotExist(): void
+    {
+        $mock = $this->mockPetService();
+        $mock->method('uploadFile')
+            ->willThrowException(new PetApiException('Nie znaleziono zwierzęcia o podanym ID.', 404));
+
+        $this->postJson(route('pets.upload', ['pet' => 999]), [
+            'file' => UploadedFile::fake()->image('burek.jpg'),
+        ])->assertNotFound()
+            ->assertJson(['message' => 'Nie znaleziono zwierzęcia o podanym ID.']);
+    }
+
+    /**
+     * @return void
+     */
+    public function testUploadFileShouldReturnUnprocessableWhenFileIsMissing(): void
+    {
+        $this->postJson(route('pets.upload', ['pet' => 1]), [])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['file']);
+    }
+
+    /**
+     * @return void
+     */
+    public function testUploadFileShouldReturnUnprocessableWhenFileFormatIsInvalid(): void
+    {
+        $this->postJson(route('pets.upload', ['pet' => 1]), [
+            'file' => UploadedFile::fake()->create('dokument.pdf', 100, 'application/pdf'),
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['file']);
+    }
+
+    /**
+     * @return void
+     */
+    public function testUploadFileShouldReturnUnprocessableWhenFileIsTooLarge(): void
+    {
+        $this->postJson(route('pets.upload', ['pet' => 1]), [
+            'file' => UploadedFile::fake()->image('wielki.jpg')->size(10241),
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['file']);
     }
 }

@@ -6,6 +6,7 @@ use App\DTOs\PetDTO;
 use App\Exceptions\PetApiException;
 use App\Repositories\PetRepositoryInterface;
 use App\Services\PetService;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator;
 use PHPUnit\Framework\MockObject\Exception;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -228,5 +229,59 @@ class PetServiceTest extends TestCase
         $this->expectException(PetApiException::class);
 
         $this->service->deletePet('1');
+    }
+
+    /**
+     * @return void
+     */
+    public function testUploadFileShouldDelegateToRepositoryAndReturnResponse(): void
+    {
+        $file     = UploadedFile::fake()->image('burek.jpg');
+        $expected = ['code' => 200, 'message' => 'burek.jpg'];
+
+        $this->repository
+            ->expects($this->once())
+            ->method('uploadFile')
+            ->with('42', $file, null)
+            ->willReturn($expected);
+
+        $result = $this->service->uploadFile('42', $file, null);
+
+        $this->assertSame($expected, $result);
+    }
+
+    /**
+     * @return void
+     */
+    public function testUploadFileShouldPassAdditionalMetadataToRepository(): void
+    {
+        $file = UploadedFile::fake()->image('burek.jpg');
+
+        $this->repository
+            ->expects($this->once())
+            ->method('uploadFile')
+            ->with('42', $file, 'jakies dane')
+            ->willReturn(['code' => 200, 'message' => 'burek.jpg']);
+
+        $this->service->uploadFile('42', $file, 'jakies dane');
+
+        $this->assertTrue(true);
+    }
+
+    /**
+     * @return void
+     */
+    public function testUploadFileShouldPropagateExceptionFromRepository(): void
+    {
+        $file = UploadedFile::fake()->image('burek.jpg');
+
+        $this->repository
+            ->method('uploadFile')
+            ->willThrowException(new PetApiException('Nie znaleziono zwierzęcia o podanym ID.', 404));
+
+        $this->expectException(PetApiException::class);
+        $this->expectExceptionMessage('Nie znaleziono zwierzęcia o podanym ID.');
+
+        $this->service->uploadFile('999', $file, null);
     }
 }

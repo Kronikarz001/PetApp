@@ -6,8 +6,10 @@ use App\DTOs\PetDTO;
 use App\Exceptions\PetApiException;
 use App\Repositories\PetRepository;
 use App\Services\HttpService;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
-use PHPUnit\Framework\MockObject\MockObject;
+use Illuminate\Http\UploadedFile;
+use PHPUnit\Framework\MockObject\Exception;
 use Tests\TestCase;
 
 /**
@@ -16,12 +18,11 @@ use Tests\TestCase;
 class PetRepositoryTest extends TestCase
 {
     private PetRepository $repository;
-
-    /** @var HttpService&MockObject */
     private HttpService $httpService;
 
     /**
      * @return void
+     * @throws Exception
      */
     protected function setUp(): void
     {
@@ -32,7 +33,10 @@ class PetRepositoryTest extends TestCase
     }
 
     /**
-     * @return Response&MockObject
+     * @param array $data
+     * @param int $status
+     * @return Response
+     * @throws Exception
      */
     private function mockResponse(array $data, int $status = 200): Response
     {
@@ -46,6 +50,8 @@ class PetRepositoryTest extends TestCase
 
     /**
      * @return void
+     * @throws ConnectionException
+     * @throws PetApiException
      */
     public function testFindByIdShouldReturnPetDTO(): void
     {
@@ -66,6 +72,8 @@ class PetRepositoryTest extends TestCase
 
     /**
      * @return void
+     * @throws ConnectionException
+     * @throws PetApiException
      */
     public function testFindByIdShouldThrowExceptionWhenNotFound(): void
     {
@@ -81,6 +89,8 @@ class PetRepositoryTest extends TestCase
 
     /**
      * @return void
+     * @throws ConnectionException
+     * @throws PetApiException
      */
     public function testFindByIdShouldThrowExceptionOnConnectionError(): void
     {
@@ -96,6 +106,8 @@ class PetRepositoryTest extends TestCase
 
     /**
      * @return void
+     * @throws ConnectionException
+     * @throws PetApiException
      */
     public function testFindByStatusShouldReturnArrayOfPetDTOs(): void
     {
@@ -117,6 +129,8 @@ class PetRepositoryTest extends TestCase
 
     /**
      * @return void
+     * @throws ConnectionException
+     * @throws PetApiException
      */
     public function testCreateShouldReturnCreatedPetDTO(): void
     {
@@ -138,6 +152,8 @@ class PetRepositoryTest extends TestCase
 
     /**
      * @return void
+     * @throws ConnectionException
+     * @throws PetApiException
      */
     public function testUpdateShouldNotThrowOnSuccess(): void
     {
@@ -158,6 +174,8 @@ class PetRepositoryTest extends TestCase
 
     /**
      * @return void
+     * @throws ConnectionException
+     * @throws PetApiException
      */
     public function testUpdateShouldThrowExceptionOnApiError(): void
     {
@@ -175,6 +193,8 @@ class PetRepositoryTest extends TestCase
 
     /**
      * @return void
+     * @throws ConnectionException
+     * @throws PetApiException
      */
     public function testDeleteShouldNotThrowOnSuccess(): void
     {
@@ -191,6 +211,8 @@ class PetRepositoryTest extends TestCase
 
     /**
      * @return void
+     * @throws ConnectionException
+     * @throws PetApiException
      */
     public function testDeleteShouldNotThrowWhenPetAlreadyNotFound(): void
     {
@@ -203,5 +225,96 @@ class PetRepositoryTest extends TestCase
         $this->repository->delete('999');
 
         $this->assertTrue(true);
+    }
+
+    /**
+     * @return void
+     * @throws ConnectionException
+     * @throws Exception
+     * @throws PetApiException
+     */
+    public function testUploadFileShouldCallHttpServiceWithCorrectEndpoint(): void
+    {
+        $file     = UploadedFile::fake()->image('burek.jpg');
+        $expected = ['code' => 200, 'message' => 'burek.jpg'];
+
+        $response = $this->createMock(Response::class);
+        $response->method('json')->willReturn($expected);
+
+        $this->httpService
+            ->expects($this->once())
+            ->method('uploadFile')
+            ->with('/pet/42/uploadFile', $file, null)
+            ->willReturn($response);
+
+        $result = $this->repository->uploadFile('42', $file, null);
+
+        $this->assertSame($expected, $result);
+    }
+
+    /**
+     * @return void
+     * @throws ConnectionException
+     * @throws Exception
+     * @throws PetApiException
+     */
+    public function testUploadFileShouldPassAdditionalMetadataToHttpService(): void
+    {
+        $file     = UploadedFile::fake()->image('burek.jpg');
+        $response = $this->createMock(Response::class);
+        $response->method('json')->willReturn([]);
+
+        $this->httpService
+            ->expects($this->once())
+            ->method('uploadFile')
+            ->with('/pet/42/uploadFile', $file, 'jakies dane')
+            ->willReturn($response);
+
+        $this->repository->uploadFile('42', $file, 'jakies dane');
+
+        $this->assertTrue(true);
+    }
+
+    /**
+     * @return void
+     * @throws ConnectionException
+     * @throws PetApiException
+     * @throws Exception
+     */
+    public function testUploadFileShouldReturnArrayFromJsonResponse(): void
+    {
+        $file     = UploadedFile::fake()->image('burek.jpg');
+        $expected = ['code' => 200, 'type' => 'unknown', 'message' => 'burek.jpg'];
+
+        $response = $this->createMock(Response::class);
+        $response->method('json')->willReturn($expected);
+
+        $this->httpService
+            ->method('uploadFile')
+            ->willReturn($response);
+
+        $result = $this->repository->uploadFile('42', $file, null);
+
+        $this->assertIsArray($result);
+        $this->assertSame($expected, $result);
+    }
+
+    /**
+     * @return void
+     * @throws ConnectionException
+     * @throws PetApiException
+     */
+    public function testUploadFileShouldPropagateExceptionFromHttpService(): void
+    {
+        $file = UploadedFile::fake()->image('burek.jpg');
+
+        $this->httpService
+            ->method('uploadFile')
+            ->willThrowException(new PetApiException('Nie znaleziono zwierzęcia o podanym ID.', 404));
+
+        $this->expectException(PetApiException::class);
+        $this->expectExceptionMessage('Nie znaleziono zwierzęcia o podanym ID.');
+
+        $this->repository->uploadFile('999', $file, null);
     }
 }

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\DTOs\PetDTO;
 use App\Repositories\PetRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 
 /**
@@ -101,5 +102,16 @@ readonly class PetService implements PetServiceInterface
                 'name' => $data['category']['name'] ?? '',
             ] : null,
         );
+    }
+
+    /**
+     * @param string $id
+     * @param UploadedFile $file
+     * @param string|null $additionalMetadata
+     * @return array
+     */
+    public function uploadFile(string $id, UploadedFile $file, ?string $additionalMetadata = null): array
+    {
+        return $this->petRepository->uploadFile($id, $file, $additionalMetadata);
     }
 }

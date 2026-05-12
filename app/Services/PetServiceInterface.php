@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Dtos\PetDto;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Http\UploadedFile;
 
 /**
  * Summary of PetServiceInterface
@@ -42,5 +43,11 @@ interface PetServiceInterface
      */
     public function deletePet(string $pet): void;
 
-
+    /**
+     * @param string $id
+     * @param UploadedFile $file
+     * @param string|null $additionalMetadata
+     * @return array
+     */
+    public function uploadFile(string $id, UploadedFile $file, ?string $additionalMetadata = null): array;
 }
