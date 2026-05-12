@@ -2,6 +2,8 @@
 
 namespace App\DTOs;
 
+use App\Enums\PetStatusEnum;
+
 /**
  * Summary of PetDTO
  */
@@ -33,7 +35,7 @@ readonly class PetDTO
         return new self(
             id:        $data['id'] ?? null,
             name:      $data['name'] ?? '',
-            status:    $data['status'] ?? 'available',
+            status:    $data['status'] ?? PetStatusEnum::AVAILABLE->value(),
             photoUrls: $data['photoUrls'] ?? [],
             tags:      $data['tags'] ?? [],
             category:  $data['category'] ?? null,

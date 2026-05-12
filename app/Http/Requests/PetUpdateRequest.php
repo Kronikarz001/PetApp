@@ -3,6 +3,9 @@
 namespace App\Http\Requests;
 
 
+use App\Enums\PetStatusEnum;
+use Illuminate\Validation\Rules\Enum;
+
 /**
  * Summary of PetUpdateRequest
  */
@@ -15,7 +18,7 @@ class PetUpdateRequest extends Request
     {
         return [
             'name'          => ['required', 'string', 'max:255'],
-            'status'        => ['required', 'string', 'in:available,pending,sold'],
+            'status'        => ['required', 'string', new Enum(PetStatusEnum::class)],
             'photoUrls'     => ['nullable', 'array'],
             'photoUrls.*'   => ['nullable', 'url'],
             'category.id'   => ['nullable', 'integer'],
